@@ -29,6 +29,22 @@ def getItem2(key):
     return value
 
 
+def getItem_json(key):
+    print("---in GET Bucket storage-----", key)
+    storage_client = storage.Client.from_service_account_json(
+        'prashasti-karlekar-fall2022-9205433610ce.json')
+    bucket_name = "mapreduce_storage"
+    bucket = storage_client.get_bucket(bucket_name)
+    get_newBlob = bucket.get_blob(key)
+
+    print(get_newBlob)
+    if get_newBlob.exists():
+        value = json.loads(get_newBlob.download_as_string())
+    else:
+        value = "OBJECT NOT FOUND"
+    return value
+
+
 def setItem2(key, value):
     print("In SET bucket storage")
 
@@ -63,12 +79,11 @@ class WordCount(object):
         self.output_location = output_location
         self.pool = Pool(num_mappers)
 
-        self.url = "https://us-central1-prashasti-karlekar-fall2022.cloudfunctions.net/master"
-
 # WORD COUNT
 
 
 # ------------------------------------KEEP IN MAPREDUCE-EXECUTE----------------------------------------------
+
 
     def __call__(self, inputs, output_location, chunksize=6):
         map_url = "https://us-central1-prashasti-karlekar-fall2022.cloudfunctions.net/maper"
@@ -147,8 +162,7 @@ class InvertedIndex(object):
         self.output_location = output_location
         self.pool = Pool(num_mappers)
 
-
-# WORD COUNT
+        self.url = "https://us-central1-prashasti-karlekar-fall2022.cloudfunctions.net/master"
 
     # ------------------------------------KEEP IN MAPREDUCE-EXECUTE----------------------------------------------
 
@@ -174,7 +188,7 @@ class InvertedIndex(object):
                 # queue = Queue()
 
                 p = Process(target=requests.get(
-                    map_url, params=mapper_params, headers=headers, verify=False))
+                    map_url, params=mapper_params, verify=False, headers=headers), args=(inputs,))
 
                 p.start()
                 p.join()
@@ -216,11 +230,18 @@ class InvertedIndex(object):
             except Exception as e:
                 print("Error in reducer", e)
                 return e
+        # saving final result.json on local system
+        try:
+            file_data = getItem_json("II_final.json")
+            with open("response.json", "w", encoding="utf-8") as f:
+                json.dump(file_data, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            return e
+
         return 'True'
 
 
 def main(num_mappers, num_reducers, map_function, input_location, output_location):
-    url = "https://us-central1-prashasti-karlekar-fall2022.cloudfunctions.net/master"
 
     # if application is wc, make an object of WordCount
     if map_function == "word_count":
