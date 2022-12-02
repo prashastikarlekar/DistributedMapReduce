@@ -47,8 +47,8 @@ def setItem2(key, value):
 
 # ------------------------BUCKET END--------------------------------------
 
-# ------------------------WORD COUNT MAPPERS------------------------------
-def map_function(filename):   # map function for word count
+# ------------------------WORD COUNT MAPPER------------------------------
+def map_function(queue, filename):   # map function for word count
     output = []
     STOP_WORDS = set([
         'a', 'an', 'and', 'are', 'as', 'be', 'by', 'for', 'if', 'in',
@@ -68,38 +68,44 @@ def map_function(filename):   # map function for word count
         # output = output[1:-1].split(',')
         setItem2("mapped_file.txt", output)
         print("Mapping done")
+        queue.put(output)
+        print("Starting Group By")
+        # return output
 
-        return output
     except Exception as e:
         return 'False from mapper'
-        print(e)
+# ================================WORD COUNT MAPPER END================================
 
 
-def combine(mapped_values):
-    merged_data = collections.defaultdict(list)
-    for key, value in mapped_values:
-        merged_data[key].append(value)
+# ================================INVERTED INDEX MAPPER================================
+def map_function_ii(filename):   # map function for word count
+    output = []
+    STOP_WORDS = set([
+        'a', 'an', 'and', 'are', 'as', 'be', 'by', 'for', 'if', 'in',
+        'is', 'it', 'of', 'or', 'py', 'rst', 'that', 'the', 'to', 'with', 'on'
+    ])
+
+    TR = str.maketrans(
+        string.punctuation, ' ' * len(string.punctuation))
+    for file in filename:
+        f = getItem2(file)
+        for line in f:
+            line = line.translate(TR)  # Strip punctuation
+            for word in line.split():
+                word = word.lower()
+                if word.isalpha() and word not in STOP_WORDS and len(word) > 1:
+                    output.append(((word, file), 1))
     try:
-        setItem2("word_count_intermediate.txt",
-                 str(merged_data.items()))
-        print("WORD COUNT- Intermediate data Written")
+        # output = output[1:-1].split(',')
+        setItem2("II_mapped_file.txt", output)
+        print("Mapping done")
+        print("Starting Group By")
+        return "Done"
+
     except Exception as e:
-        print("ERROR WHILE SAVING INTERMEDIATE DATA IN BUCKET STORAGE \n", e)
+        return 'False from mapper'
+# ================================INVERTED INDEX MAPPER END================================
 
-    return "True"
-
-
-def inv_index_mapper(value, index):
-    result = {}
-    words = value.split()
-    for word in words:
-        temp_list = [index, 1]
-        word = word.lower()
-        if word in result.keys():
-            result[word][1] += 1
-        else:
-            result[word] = temp_list
-    return result
 
 # -------------------------MAIN------------------------------------------------
 
@@ -111,11 +117,7 @@ def main(request):
     if flag == "map":
         filename = request.args.get("inputs")
         map_function(filename)
-    if flag == "combine":
-        mapped_values = request.args.get("mapped_values")
-        combine(mapped_values)
 
     if flag == "map_ii":
-        values = request.args.get("values")
-        index = request.args.get("index")
-        inv_index_mapper(values, index)
+        inputs = request.args.get("inputs")
+        map_function_ii(inputs)

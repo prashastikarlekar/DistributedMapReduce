@@ -47,17 +47,29 @@ def combine(filename):
     mapped_values = mapped_values[0]
     mapped_values = ast.literal_eval(mapped_values)
     merged_data = collections.defaultdict(list)
+    for key, value in mapped_values:
+        merged_data[key].append(value)
+
+    setItem2("word_count_intermediate.txt",
+             str(merged_data.items()))
+    print("WORD COUNT- Intermediate data Written")
+
+    return merged_data.items()
+
+
+def combine_ii(filename):
+    mapped_values = getItem2(filename)
+    mapped_values = mapped_values[0]
+    mapped_values = ast.literal_eval(mapped_values)
     merged_data = collections.defaultdict(list)
     for key, value in mapped_values:
         merged_data[key].append(value)
-    try:
-        setItem2("word_count_intermediate.txt",
-                 str(merged_data.items()))
-        print("WORD COUNT- Intermediate data Written")
-        return "Done"
-    except Exception as e:
-        print("ERROR WHILE SAVING INTERMEDIATE DATA IN BUCKET STORAGE \n", e)
-        return "False"
+
+    setItem2("II_intermediate.txt",
+             str(merged_data.items()))
+    print("Inverted Index- Intermediate data Written")
+
+    return merged_data.items()
 
 
 def main(request):
@@ -67,3 +79,6 @@ def main(request):
     if flag == "combine":
         filename = request.args.get("filename")
         combine(filename)
+    if flag == "II_combine":
+        filename = request.args.get("filename")
+        combine_ii(filename)

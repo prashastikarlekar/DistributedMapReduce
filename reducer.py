@@ -1,3 +1,4 @@
+import ast
 import requests
 import json
 import os
@@ -44,42 +45,35 @@ def setItem2(key, value):
 # reduce function for word count
 
 
-def reduce_func(combine_out):
+def reduce_func(filename):
+    combine_out = getItem2(filename)
+    combine_out = combine_out[0].strip('dict_items')
+    combine_out = ast.literal_eval(combine_out)
     reducer_data = collections.defaultdict(list)
     for key, value in combine_out:
         reducer_data[key].append(sum(value))
     setItem2("word_count_final.txt", str(reducer_data.items()))
+    return "Done"
 
  # reduce function for inverted index
 
 
-def inv_index_reducer(key, input_location, num_mappers):
-    temp = str(input_location)+"_MergedData"
-    map_res = getItem2(temp)
-    temp = []
-    for lis in map_res:
-        if key in lis.keys():
-            temp.append(lis[key])
-    result = []
-    for i in range(num_mappers):
-        count = 0
-        for ele in temp:
-            if ele[0] == i:
-                count += ele[1]
-        if count == 0:
-            pass
-        else:
-            result.append([i, count])
-    return result
+def reduce_func_ii(filename):
+    combine_out = getItem2(filename)
+    combine_out = combine_out[0].strip('dict_items')
+    combine_out = ast.literal_eval(combine_out)
+    reducer_data = collections.defaultdict(list)
+    for key, value in combine_out:
+        reducer_data[key].append(sum(value))
+    setItem2("II_final.txt", str(reducer_data.items()))
+    return "Done"
 
 
 def main(request):
     flag = request.args.get("flag")
     if flag == "reduce":
-        item = request.args.get("merged_values")
-        reduce_func(item)
-    if flag == "reduce_ii":
-        element = request.args.get("element")
-        input_location = request.args.get("input_location")
-        num_mappers = request.args.get("num_mappers")
-        inv_index_reducer(element, input_location, num_mappers)
+        filename = request.args.get("filename")
+        reduce_func(filename)
+    if flag == "II_reduce":
+        filename = request.args.get("filename")
+        reduce_func_ii(filename)
