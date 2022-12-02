@@ -39,6 +39,7 @@
 								<div class="input-group">
 									<input
 										type="search"
+										id="inputBox"
 										placeholder="Type your word here..."
 										aria-describedby="button-addon1"
 										class="form-control border-0 bg-light"
@@ -54,6 +55,8 @@
 									</div>
 								</div>
 							</div>
+							<button id="readButton" onclick="readFile()">FETCH</button>
+							<div id="result"></div>
 						</form>
 						<!-- End -->
 					</div>
@@ -61,4 +64,5 @@
 			</div>
 		</div>
 	</body>
+	<script src="index.js"></script>
 </html>
