@@ -28,6 +28,22 @@ def getItem2(key):
     return value
 
 
+def getItem_json(key):
+    print("---in GET Bucket storage-----", key)
+    storage_client = storage.Client.from_service_account_json(
+        'prashasti-karlekar-fall2022-9205433610ce.json')
+    bucket_name = "mapreduce_storage"
+    bucket = storage_client.get_bucket(bucket_name)
+    get_newBlob = bucket.get_blob(key)
+
+    print(get_newBlob)
+    if get_newBlob.exists():
+        value = json.loads(get_newBlob.download_as_string())
+    else:
+        value = "OBJECT NOT FOUND"
+    return value
+
+
 def setItem2(key, value):
     print("In SET bucket storage")
 
@@ -47,40 +63,25 @@ def setItem2(key, value):
         return "NOT STORED\r\n".encode()
 
 
-# def mapper(filename):   # map function for word count
-#     output = {}
-#     STOP_WORDS = set([
-#         'a', 'an', 'and', 'are', 'as', 'be', 'by', 'for', 'if', 'in',
-#         'is', 'it', 'of', 'or', 'py', 'rst', 'that', 'the', 'to', 'with', 'on'
-#     ])
+def setItem_json(key, value):
+    print("In SET bucket storage")
 
-#     TR = str.maketrans(
-#         string.punctuation, ' ' * len(string.punctuation))
-#     for file in filename:
-#         f = getItem2(file)
-#         for line in f:
-#             line = line.translate(TR)  # Strip punctuation
-#             for word in line.split():
-#                 word = word.lower()
-#                 if word.isalpha() and word not in STOP_WORDS and len(word) > 1:
-#                     # json.dumps(word)
-#                     # word= '"'+word+
-#                     # output[json.dumps(word).strip("'")] = [file, [1]]
-#                     output[word] = [file, [1]]
+    try:
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'prashasti-karlekar-fall2022-9205433610ce.json'
+        storage_client = storage.Client(
+            project='prashasti-karlekar-fall2022')
+        bucket_name = "mapreduce_storage"
+        bucket = storage_client.get_bucket(bucket_name)
+        # filename = "bucket_data.json"
+        blob = bucket.blob(key)
+        blob.upload_from_string(data=json.dumps(
+            value), content_type='application/json')
+        ret_val = "STORED\r\n"
+        return ret_val.encode()
+    except Exception as e:
+        print(e)
+        return "NOT STORED\r\n".encode()
 
-#     try:
-#         # # json.dumps(output)
-#         # for key in output.keys():
-#         #     key.replace("'", "")
-#         # output = output[1:-1].split(',')
-#         output = list(output)
-#         setItem2("II_mapped_file.txt", output)
-#         print("Mapping done")
-#         print("Starting Group By")
-#         return "Done"
-
-#     except Exception as e:
-#         return 'False from mapper'
 
 def map_function_ii(filename):   # map function for word count
     output = []
@@ -109,33 +110,6 @@ def map_function_ii(filename):   # map function for word count
     except Exception as e:
         return 'False from mapper'
 
-# def combine(filename):
-    # mapped_values = getItem2(filename)
-    # mapped_values = (mapped_values[0])
-    # mapped_values = json.loads(mapped_values)
-    # merged_data = {}
-    # for iterator in mapped_values:
-    #     key = iterator
-    #     value = mapped_values[iterator]
-    #     merged_data[key].append().append([value[0]])
-    # mapped_values = json.loads(mapped_values)
-
-    # mapped_values = ast.literal_eval(mapped_values)
-
-    # merged_data = collections.defaultdict(list)
-
-    # for i in mapped_values:
-    #     merged_data[i[0]].append(i[1])
-
-    # setItem2("II_intermediate.txt",
-    #          str(merged_data.items()))
-    # print("Inverted Index- Intermediate data Written")
-
-    # return merged_data.items()
-    # for key,value in mapped_values:
-    #     value[1].append(value)
-    #     merged_data[key].append()
-
 
 def combine_ii(filename):
     mapped_values = getItem2(filename)
@@ -158,8 +132,12 @@ def reduce_func(filename):
     combine_out = ast.literal_eval(combine_out)
     reducer_data = collections.defaultdict(list)
     for key, value in combine_out:
-        reducer_data[key].append(sum(value))
-    setItem2("II_final.txt", (reducer_data.items()))
+        reducer_data[json.dumps(key)].append(sum(value))
+    # reducer_data = reducer_data[0].strip('dict_items')
+    # reducer_data = ast.literal_eval(reducer_data)
+    setItem_json("II_final.json", reducer_data)
+
+    # setItem2("II_final.txt", (reducer_data.items()))
 
 
 class InvertedIndex(object):
@@ -172,8 +150,6 @@ class InvertedIndex(object):
         self.pool = Pool(num_mappers)
 
         self.url = "https://us-central1-prashasti-karlekar-fall2022.cloudfunctions.net/master"
-
-# WORD COUNT
 
     # ------------------------------------KEEP IN MAPREDUCE-EXECUTE----------------------------------------------
 
@@ -198,7 +174,8 @@ class InvertedIndex(object):
             try:
                 # queue = Queue()
 
-                p = Process(target=map_function_ii, args=(inputs,))
+                p = Process(target=requests.get(
+                    map_url, params=mapper_params, verify=False, headers=headers), args=(inputs,))
 
                 p.start()
                 p.join()
@@ -216,7 +193,8 @@ class InvertedIndex(object):
         with Pool(processes=4) as pool:
             try:
 
-                p = Process(target=combine_ii, args=("II_mapped_file.txt",))
+                p = Process(target=requests.get(combine_url, params=combiner_params,
+                            headers=headers, verify=False), args=("II_mapped_file.txt",))
                 p.start()
                 p.join()
                 # p.run()
@@ -231,7 +209,7 @@ class InvertedIndex(object):
 
         with Pool(processes=4) as pool:
             try:
-                p = Process(target=reduce_func, args=(
+                p = Process(target=requests.get(reducer_url, params=reducer_params, headers=headers, verify=False), args=(
                     "II_intermediate.txt",))
                 p.start()
                 p.join()
@@ -239,6 +217,14 @@ class InvertedIndex(object):
             except Exception as e:
                 print("Error in reducer", e)
                 return e
+        # saving final result.json on local system
+        try:
+            file_data = getItem_json("II_final.json")
+            with open("response.json", "w", encoding="utf-8") as f:
+                json.dump(file_data, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            return e
+
         return 'True'
 
 
