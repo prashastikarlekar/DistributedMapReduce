@@ -10,13 +10,17 @@ function readFile() {
 }
 
 function parseFile(text, input) {
+	resultDiv = document.getElementById("result");
+
 	// console.log(text)
 	var regex =
 		/\[\\"[A-Za-z0-9]+\\",\s+\\"[A-Za-z0-9]+\.[A-Za-z0-9]+\\"]":\s+\[\s+[0-9]+\s+]/g;
 	var result = text.match(regex);
 	console.log(result.length);
+	var obj = {};
 
 	i = 0;
+	searches = 0;
 	while (i < result.length) {
 		current = result[i];
 		firstPart = current.split(":")[0];
@@ -31,11 +35,29 @@ function parseFile(text, input) {
 		count = JSON.parse(secondPart)[0];
 
 		if (key == input) {
-			alert(
-				"Word: " + input + " appeared " + count + " times in file " + fileName
-			);
+			searches += 1;
+
+			match =
+				"Word: <b class='text-info'>" +
+				input +
+				"</b> appeared " +
+				count +
+				" times in file " +
+				fileName;
+			obj[key] = "<div><h5>" + match + "</h5><div>";
+			// msg =
+			// 	"Word: " + input + " appeared " + count + " times in file " + fileName;
+			// alert(
+			// 	"Word: " + input + " appeared " + count + " times in file " + fileName
+			// );
+			resultDiv.innerHTML += obj[key];
+
+			// console.log(resultDiv.innerText);
 		}
 
 		i += 1;
+	}
+	if (searches == 0) {
+		alert("Word: " + input + " did not appear in the files. Try another word.");
 	}
 }

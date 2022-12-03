@@ -30,7 +30,10 @@ body {
 	background: -webkit-linear-gradient(to right, #ffd89b, #19547b);
 	background: linear-gradient(to right, #ffd89b, #19547b);
 	min-height: 100vh;
-	background-image: url(bigdata.jpg);
+	background: url(bigdata.jpg) no-repeat center center fixed;
+	background-size: cover;
+	height: 100%;
+	overflow: hidden;
 }
 
 .form-control::placeholder {
